@@ -1,0 +1,76 @@
+﻿@page "/ImportDataManual"
+
+
+@inject IHttpClientFactory _clientFactory
+
+<h3>Import Data Manual</h3>
+
+@if (string.IsNullOrWhiteSpace(errorString) == false)
+{
+	<div class="h2">@errorString</div>
+}
+else if (moodleModel == null)
+{
+	<div class="h4">Loading</div>
+}
+else
+{
+	<table class="table table-striped">
+		<thead class="thead-dark">
+			<tr>
+				<th>MoodleId</th>
+				<th>StudentReferenceNumber</th>
+				<th>DateLastAccessUnix</th>
+			</tr>
+		</thead>
+
+		<tbody>
+
+			@foreach (var m in moodleModel.MoodleActivity)
+			{
+				<tr>
+					<td>@m.id</td>
+					<td>@m.username</td>
+					<td>@m.logintime</td>
+				</tr>
+			}
+
+		</tbody>
+	</table>
+}
+
+
+
+@code {
+
+	MoodleModel? moodleModel;
+	string? errorString;
+
+	protected override async Task OnInitializedAsync()
+	{
+		var request = new HttpRequestMessage(HttpMethod.Get,
+			"https://student.ayrshire.ac.uk/webservice/rest/server.php?wstoken=0212c448ac27a7f16ef0cc85efe9653a&moodlewsrestformat=json&wsfunction=local_powerbireports_lastloginreport&startdate='2023-05-18%2000:00:00'&enddate='2023-05-19%2023:59:59'");
+
+		var client = _clientFactory.CreateClient();
+
+		HttpResponseMessage response = await client.SendAsync(request);
+
+		if (response.IsSuccessStatusCode)
+		{
+			// ORIG
+			moodleModel = await response.Content.ReadFromJsonAsync<MoodleModel>();
+
+			// ALT
+			// using var responseStream = await response.Content.ReadAsStreamAsync();
+			// moodleModel = await JsonSerializer.DeserializeAsync<MoodleModel>(responseStream);
+
+			errorString = null;
+		}
+		else
+		{
+			errorString = $"There was an error getting Moodle data. {response.ReasonPhrase}";
+		}
+
+
+	}
+}
